@@ -1,0 +1,6 @@
+custom_new.settings_form:
+  title: 'custom new'
+  description: 'Configure custom new.'
+  parent: system.admin_config_system
+  route_name: custom_new.settings_form
+  weight: 10
