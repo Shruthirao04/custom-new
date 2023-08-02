@@ -1,0 +1,88 @@
+<?php
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityInterface;
+
+
+/**
+ * Implements hook_form_alter().
+ */
+function custom_new_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id == "node_article_edit_form") {
+    $helptext = \Drupal::configFactory()->getEditable("custom_new.settings")->get("subject");
+    $message = \Drupal::configFactory()->getEditable("custom_new.settings")->get("text");
+    $node = \Drupal::routeMatch()->getParameter("node"); //type: node object
+    $token_service = \Drupal::token();
+    $hlptxt = $token_service->replace($helptext, ['node'=>$node], ['clear'=>TRUE]);
+    $msg = $token_service->replace($message, ['node'=>$node], ['clear'=>TRUE]);
+    $form['#prefix'] = "<span>" . $hlptxt . "</span>";
+    $form['#prefix'] = "<span>" . $msg . "</span>";
+  }
+}
+
+/**
+ * Implements hook_help().
+ */
+
+function custom_new_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the custom_mail module.
+    case 'help.page.custom_mail':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('How to send an email programmatically') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function custom_new_mail($key, &$message, $params) {
+  $options = [
+    'langcode' => $message['langcode'],
+  ];
+
+  switch ($key) {
+    case 'create_article':
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+      $message['subject'] = t('Page created: @title', ['@title' => $params['node_title']], $options);
+      $message['body'][] = $params['message'];
+      break;
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function custom_new_entity_insert(EntityInterface $entity) {
+
+  if ($entity->getEntityTypeId() !== 'node' || ($entity->getEntityTypeId() === 'node' && $entity->bundle() !== 'article')) {
+    return;
+  }
+
+  $mailManager = \Drupal::service('plugin.manager.mail');
+
+  $module = 'custom_new';
+  $key = 'create_article';
+  $to = \Drupal::currentUser()->getEmail();
+  $message = \Drupal::configFactory()->getEditable("custom_new.settings")->get("text");
+  $params['message'] = $entity->get($message)->value;
+  $params['node_title'] = $entity->label();
+  $langcode = \Drupal::currentUser()->getPreferredLangcode();
+  $send = TRUE;
+
+  $result = $mailManager->mail($module, $key, $to, $langcode, $params, NULL, $send);
+  if ($result['result'] !== TRUE) {
+
+    \Drupal::messenger()->addMessage(t('There was a problem sending your message and it was not sent'), 'error');
+  }
+  else {
+
+    \Drupal::messenger()->addMessage(t('Your message has been sent.'), 'status');
+  }
+
+}

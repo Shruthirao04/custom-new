@@ -7,6 +7,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 
 /**
  * Provides an example block.
@@ -47,9 +48,10 @@ final class ExampleBlock extends BlockBase implements ContainerFactoryPluginInte
    * @param \Drupal\Core\Entity\EntityDisplayRepositoryInterface $entityDisplayRepository
    *   The entity display repository service.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, $entityTypeManager) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, $entityTypeManager, EntityDisplayRepositoryInterface $entityDisplayRepository) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->entityTypeManager = $entityTypeManager;
+    $this->entityDisplayRepository = $entityDisplayRepository;
   }
 
   /**
@@ -61,33 +63,8 @@ final class ExampleBlock extends BlockBase implements ContainerFactoryPluginInte
       $plugin_id,
       $plugin_definition,
       $container->get('entity_type.manager'),
+      $container->get('entity_display.repository')
     );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getViewModeOptions($entity_type) {
-    return $this->getDisplayModeOptions('view_mode', $entity_type);
-  }
-
-  /**
-   * Gets an array of display mode options.
-   *
-   * @param string $display_type
-   *   The display type to be retrieved. It can be "view_mode" or "form_mode".
-   * @param string $entity_type_id
-   *   The entity type whose display mode options should be returned.
-   *
-   * @return array
-   *   An array of display mode labels, keyed by the display mode ID.
-   */
-  protected function getDisplayModeOptions($display_type, $entity_type_id) {
-    $options = ['default' => t('Default')];
-    foreach ($this->getDisplayModesByEntityType($display_type, $entity_type_id) as $mode => $settings) {
-      $options[$mode] = $settings['label'];
-    }
-    return $options;
   }
 
   /**
@@ -99,21 +76,14 @@ final class ExampleBlock extends BlockBase implements ContainerFactoryPluginInte
       '#title' => 'Select Node',
       '#default_value' => Node::load($this->configuration['node_id']),
       '#target_type' => 'node',
-      '#selection_settings' => [
-        'target_bundles' => ['article'],
-      ],
     ];
 
-    $view_modes = $this->getViewModeOptions('node');
-    $options = [];
-    foreach ($view_modes as $view_mode => $info) {
-      $options[$view_mode] = $info['label'];
-    }
+    $view_modes = $this->entityDisplayRepository->getViewModeOptions('node');
 
     $form['view_mode'] = [
       '#type' => 'radios',
-      '#title' => $this->t('View Mode'),
-      '#options' => $options,
+      '#title' => 'View Mode',
+      '#options' => $view_modes,
     ];
 
     return $form;

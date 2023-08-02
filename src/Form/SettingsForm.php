@@ -28,30 +28,52 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['example'] = [
+    $form['subject'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Example'),
-      '#default_value' => $this->config('custom_new.settings')->get('example'),
+      '#title' => $this->t('subject'),
+      '#default_value' => $this->config('custom_new.settings')->get('subject'),
     ];
+    $form['text'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('text'),
+      '#default_value' => $this->config('custom_new.settings')->get('text'),
+    ];
+
+    if (\Drupal::moduleHandler()->moduleExists('token')) {
+      $form['tokens'] = [
+        '#title' => $this->t('Tokens'),
+        '#type' => 'container',
+      ];
+      $form['tokens']['help'] = [
+        '#theme' => 'token_tree_link',
+        '#token_types' => [
+          'node',
+        ],
+            // '#token_types' => 'all'
+        '#global_types' => FALSE,
+        '#dialog' => TRUE,
+      ];
+    }
     return parent::buildForm($form, $form_state);
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    if ($form_state->getValue('example') != 'example') {
-      $form_state->setErrorByName('example', $this->t('The value is not correct.'));
-    }
-    parent::validateForm($form, $form_state);
-  }
+  // /**
+  //  * {@inheritdoc}
+  //  */
+  // public function validateForm(array &$form, FormStateInterface $form_state) {
+  //   if ($form_state->getValue('example') != 'example') {
+  //     $form_state->setErrorByName('example', $this->t('The value is not correct.'));
+  //   }
+  //   parent::validateForm($form, $form_state);
+  // }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $this->config('custom_new.settings')
-      ->set('example', $form_state->getValue('example'))
+      ->set('subject', $form_state->getValue('subject'))
+      ->set('text', $form_state->getValue('text'))
       ->save();
     parent::submitForm($form, $form_state);
   }

@@ -5,3 +5,16 @@ custom_new.settings_form:
     _form: 'Drupal\custom_new\Form\SettingsForm'
   requirements:
     _permission: 'administer custom_new configuration'
+
+custom_new.custom_controller:
+  path: '/display/{node}/details'
+  defaults:
+    _controller: '\Drupal\custom_new\Controller\CustomController::display'
+    _title: 'Custom Display'
+  requirements:
+    _permission: 'custom permission'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: entity:node
